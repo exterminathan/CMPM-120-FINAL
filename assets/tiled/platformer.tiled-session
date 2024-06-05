@@ -1,0 +1,42 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "levelone.tmx": {
+            "scale": 0.39573437499999997,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1600.8212579460658,
+                "y": 603.9404587989104
+            }
+        },
+        "levelone.tmx#scribble-tileset-packed": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        }
+    },
+    "last.imagePath": "C:/Users/exter/OneDrive/Documents/GitHub/CMPM-120-FINAL/assets/tiled",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 64,
+    "map.tileWidth": 64,
+    "map.width": 50,
+    "openFiles": [
+        "levelone.tmx"
+    ],
+    "project": "platformer.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "levelone.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.tileSize": {
+        "height": 64,
+        "width": 64
+    }
+}
