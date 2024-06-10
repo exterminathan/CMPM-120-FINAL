@@ -466,26 +466,47 @@ class Platformer extends Phaser.Scene {
 }
 
 //Win End Screen
-class EndScene extends Phaser.Scene {
+class TitleScreen extends Phaser.Scene {
     constructor() {
-        super("EndScene");
+        super("TitleScreen");
     }
 
     preload() {
+        // Title Card
+        this.load.setPath('./assets/');
+        this.load.image("titleCard", "TitleCard.png");
+
         // Load the bitmap font
         this.load.setPath('./assets/fonts');
-        this.load.bitmapFont('b93', 'b93font_0.png', 'b93font.fnt');
+        this.load.bitmapFont('dritch', 'dritch_0.png', 'dritch.xml');
     }
 
     create() {
         // Background
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 1).setOrigin(0);
 
-        // Title
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 4, 'b93', 'Congratulations!', 64).setOrigin(0.5);
+        // Title Card
+        const titleCard = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2.67, 'titleCard'); // Top 3/4ths
+        titleCard.setOrigin(0.5, 0.5);
+
+        // Scale title card to fit within the canvas
+        const scaleX = this.cameras.main.width / titleCard.width;
+        const scaleY = this.cameras.main.height * 0.65 / titleCard.height;
+        const scale = Math.min(scaleX, scaleY);
+        titleCard.setScale(scale);
 
         // Instructions
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height * 3 / 4, 'b93', 'Press <Q> to restart and try again!', 64).setOrigin(0.5);
+        const instructions = this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height * 7 / 8, 'dritch', 'Press <Q> to start playing!', 64).setOrigin(0.5);
+
+
+        // Make the instructions slowly flash
+        this.tweens.add({
+            targets: instructions,
+            alpha: { from: 1, to: 0 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
 
         // Input listener to return to the game when any key is pressed
         this.input.keyboard.once('keydown-Q', () => {
