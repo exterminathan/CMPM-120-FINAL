@@ -1,16 +1,139 @@
-class Enemy {
-    constructor(scene, x, y, key) {
+class Inventory {
+    constructor() {
+        this.items = [];
+    }
+
+    addItem(item) {
+        this.items.push(item);
+        console.log(`Added ${item.name} to inventory`);
+    }
+
+    removeItem(itemName) {
+        this.items = this.items.filter(item => item.name !== itemName);
+        console.log(`Removed ${itemName} from inventory`);
+    }
+
+    useItem(itemName, player) {
+        const itemIndex = this.items.findIndex(item => item.name === itemName);
+        if (itemIndex !== -1) {
+            const item = this.items[itemIndex];
+            console.log(item);
+            item.use(player);
+            this.items.splice(itemIndex, 1);
+        } else {
+            console.log(`Item ${itemName} not found in inventory`);
+        }
+    }
+
+    hasItem(itemName) {
+        return this.items.some(item => item.name === itemName);
+    }
+
+    printInventory() {
+        console.log(this.items);
+    }
+}
+
+class Item {
+    constructor(name, properties = {}) {
+        this.name = name;
+        this.properties = properties;
+    }
+
+    use(player) {
+        console.log(`${player.name} used ${this.name}`);
+        // Add custom behavior based on item properties
+    }
+}
+
+class Candy extends Item {
+    constructor() {
+        super('Candy', { hp: 1 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used ${this.name}`);
+        player.health += this.properties.hp;
+        console.log(player.health);
+        player.scene.events.emit('updateHealth', player.health);
+    }
+}
+
+class Apple extends Item {
+    constructor() {
+        super('Apple', { hp: 2 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used ${this.name}`);
+        player.health += this.properties.hp;
+        console.log(player.health);
+        player.scene.events.emit('updateHealth', player.health);
+
+    }
+}
+
+class Meat extends Item {
+    constructor() {
+        super('Meat', { hp: 3 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used ${this.name}`);
+        player.health += this.properties.hp;
+        console.log(player.health);
+        player.scene.events.emit('updateHealth', player.health);
+
+    }
+}
+
+class Sword extends Item {
+    constructor() {
+        super('Sword', { damage: 2 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used the sword!`);
+        // Add custom sword behavior here
+    }
+}
+
+class Spear extends Item {
+    constructor() {
+        super('Spear', { damage: 1 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used the spear!`);
+        // Add custom spear behavior here
+    }
+}
+
+class Pike extends Item {
+    constructor() {
+        super('Pike', { damage: 1.5 });
+    }
+
+    use(player) {
+        console.log(`${player.name} used the pike!`);
+        // Add custom pike behavior here
+    }
+}
+
+class BaseEnemy {
+    constructor(scene, x, y, key, walkAnim, idleAnim, jumpAnim) {
         this.scene = scene;
         this.sprite = scene.physics.add.sprite(x, y, key);
+        this.health = 10; // Set initial health
+        this.damageTimer = null; // Timer for dealing damage to the player
 
         // Set enemy properties
         this.sprite.setCollideWorldBounds(true);
         this.sprite.body.setGravityY(3000);
         this.sprite.setBounce(0.2);
-        this.sprite.setVelocityX(100);
 
         // Set enemy animations
-        this.sprite.anims.play('walk', true);
+        this.sprite.anims.play(walkAnim, true);
 
         // Handle collision with the ground layer
         scene.physics.add.collider(this.sprite, scene.groundLayer);
@@ -20,30 +143,93 @@ class Enemy {
     }
 
     update() {
-        // Check for edges and reverse direction
-        if (this.sprite.body.blocked.right || this.sprite.body.blocked.left) {
-            this.sprite.setVelocityX(this.sprite.body.velocity.x * -1);
+        // Ensure enemy faces the player and gun points in the correct direction
+        const direction = (this.scene.player.x < this.sprite.x) ? -1 : 1;
+        this.sprite.setFlipX(direction === -1);
+
+        const moveSpeed = 30; // Adjust this value to control the enemy's movement speed
+        if (this.scene.player.x < this.sprite.x) {
+            this.sprite.setVelocityX(-moveSpeed);
+        } else if (this.scene.player.x > this.sprite.x) {
+            this.sprite.setVelocityX(moveSpeed);
+        } else {
+            this.sprite.setVelocityX(0);
         }
 
-        // Prevent falling off edges
-        if (this.sprite.body.blocked.down && !this.sprite.body.blocked.left && !this.sprite.body.blocked.right) {
-            const nextTileLeft = this.scene.groundLayer.getTileAtWorldXY(this.sprite.x - this.sprite.width / 2, this.sprite.y + this.sprite.height / 2);
-            const nextTileRight = this.scene.groundLayer.getTileAtWorldXY(this.sprite.x + this.sprite.width / 2, this.sprite.y + this.sprite.height / 2);
-
-            if (!nextTileLeft) {
-                this.sprite.setVelocityX(Math.abs(this.sprite.body.velocity.x));
-            }
-
-            if (!nextTileRight) {
-                this.sprite.setVelocityX(-Math.abs(this.sprite.body.velocity.x));
-            }
+        // Ensure the enemy falls down due to gravity
+        if (this.sprite.body.blocked.down) {
+            this.sprite.setVelocityY(0);
+        } else {
+            this.sprite.setVelocityY(this.sprite.body.velocity.y);
         }
     }
 
     handlePlayerCollision(enemySprite, playerSprite) {
-        // Define what happens when the enemy collides with the player
-        console.log('Player collided with enemy!');
-        this.scene.playerDies();
+        const currentTime = this.scene.time.now;
+        if (currentTime - playerSprite.lastDamageTime >= 1000) { // Check for cooldown
+            this.damagePlayer(playerSprite);
+            playerSprite.setTint(0xffc1cc); // Set tint to red
+
+            // Reset the tint after 1 second
+            this.scene.time.delayedCall(1000, () => {
+                playerSprite.clearTint();
+            }, [], this);
+
+            playerSprite.lastDamageTime = currentTime; // Update last damage time
+        }
+    }
+
+    damagePlayer(playerSprite) {
+        playerSprite.health -= 1;
+        console.log(`Player health: ${playerSprite.health}`);
+        if (playerSprite.health <= 0) {
+            this.scene.playerDies();
+        }
+        // Update the health display
+        this.scene.events.emit('updateHealth', playerSprite.health);
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        console.log(`Enemy health: ${this.health}`);
+
+        // Set red tint to indicate damage
+        this.sprite.setTint(0xff0000);
+
+        // Remove the red tint after a short delay
+        this.scene.time.delayedCall(1000, () => {
+            this.sprite.clearTint();
+        });
+
+        if (this.health <= 0) {
+            this.scene.kills += 1; // Increment kills
+            this.destroy();
+        }
+    }
+
+    destroy() {
+        this.sprite.destroy();
+        if (this.damageTimer) {
+            this.damageTimer.remove();
+        }
+    }
+}
+
+class PurpleEnemy extends BaseEnemy {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'characters', 'purple-walk', 'purple-idle', 'purple-jump');
+    }
+}
+
+class RedEnemy extends BaseEnemy {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'characters', 'red-walk', 'red-idle', 'red-jump');
+    }
+}
+
+class GreenEnemy extends BaseEnemy {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'characters', 'green-walk', 'green-idle', 'green-jump');
     }
 }
 
@@ -55,12 +241,15 @@ class Platformer extends Phaser.Scene {
     init() {
         // variables and settings
         this.ACCELERATION = 400;
-        this.DRAG = 900;
-        this.JUMP_VELOCITY = -475;
+        this.DRAG = 600;
+        this.JUMP_VELOCITY = -700;
         this.PARTICLE_VELOCITY = 50;
         this.SCALE = 2.0;
 
-        this.score = 0;
+        this.kills = 0;
+
+        this.SPAWN_LOCATION_X = 70;
+        this.SPAWN_LOCATION_Y = 730;
 
         // Double jump and variable jump height variables
         this.doubleJumpTimer = null;
@@ -83,18 +272,34 @@ class Platformer extends Phaser.Scene {
 
         this.physics.world.gravity.y = 3000; // Increased from 1500
         this.MAX_JUMP_DURATION = 180; // Decreased from 300 to make jumps quicker
+
+        this.isPlayerMoving = false; // Track player movement state
     }
 
     preload() {
-        // No need to load bitmap font here, it's already loaded in Load.js
+        // Preload assets
+        //this.load.spritesheet('platformer_characters', 'path/to/platformer_characters.png', { frameWidth: 64, frameHeight: 64 });
+        //this.load.image("abstract-tileset", "path/to/abstract-tileset.png");
+        //this.load.tilemapTiledJSON("levelone", "path/to/levelone.json");
+        //this.load.bitmapFont('dritch', 'path/to/dritch_0.png', 'path/to/dritch.xml');
+        //this.load.bitmapFont('b93', 'path/to/b93font.png', 'path/to/b93font.xml');
+        //this.load.image("kenny-particles", "path/to/kenny-particles.png");
     }
 
     create() {
         // Create the tilemap and ground layer
-        this.map = this.make.tilemap({ key: "baselevel" });
-        this.tileset = this.map.addTilesetImage("MonochromeTileset", "tilemap_tiles");
-        this.groundLayer = this.map.createLayer("BaseLayer", this.tileset, 0, 0);
+        this.map = this.make.tilemap({ key: "levelone" });
+        this.tileset = this.map.addTilesetImage("abstract-tileset", "tilemap_tiles", 64, 64);
+        this.groundLayer = this.map.createLayer("ground", this.tileset, 0, 0);
+        this.bgLayer = this.map.createLayer("bg", this.tileset, 0, 0);
         this.groundLayer.setCollisionByProperty({ collides: true });
+
+    // Create and tint the background overlay
+    const bgTint = this.add.graphics();
+    bgTint.fillStyle(0x808080, 0.5); // Example color with 50% transparency
+    bgTint.fillRect(0, 0, this.bgLayer.width, this.bgLayer.height);
+    bgTint.setDepth(-1); // Ensure it is behind other layers
+
 
         // Handle "platform" tiles
         this.groundLayer.forEachTile(tile => {
@@ -103,10 +308,48 @@ class Platformer extends Phaser.Scene {
             }
         });
 
+        this.scene.launch('UIScene');
+
         // Set up player avatar
-        this.player = this.physics.add.sprite(70, 345, "platformer_characters", 0);
+        this.player = this.physics.add.sprite(this.SPAWN_LOCATION_X, this.SPAWN_LOCATION_Y, "platformer_characters", 0);
         this.player.setCollideWorldBounds(true);
-        this.player.setTint(0xff0000);
+        this.player.body.setSize(this.player.width, this.player.height * 2); // Double the height
+        this.player.body.setOffset(16, -1); // Start a few pixels higher
+
+        // Health
+        this.player.health = 10;
+        this.player.setDepth(0);
+
+        // Create Inventory
+        this.player.inventory = new Inventory();
+        this.player.inventory.addItem(new Sword());
+        this.player.inventory.addItem(new Spear());
+        this.player.inventory.addItem(new Pike());
+
+        // Create enemies
+        this.enemies = [];
+        this.enemies.push(new PurpleEnemy(this, 370, 730));
+        this.enemies.push(new RedEnemy(this, 500, 730)); // Add a RedEnemy
+        this.enemies.push(new GreenEnemy(this, 600, 730)); // Add a GreenEnemy
+        console.log(this.enemies);
+
+        // Add sword image from sprite sheet and set it invisible initially
+        this.swordImage = this.add.sprite(this.player.x, this.player.y, 'characters', 7); // Assuming 7 is the frame index for the sword
+        this.swordImage.setVisible(false);
+        this.swordImage.setAngle(45);
+        this.swordImage.setDepth(1);
+
+        // Add spear image from sprite sheet and set it invisible initially
+        this.spearImage = this.add.sprite(this.player.x, this.player.y, 'characters', 51); // Assuming 51 is the frame index for the spear
+        this.spearImage.setVisible(false);
+        this.spearImage.setAngle(45);
+        this.spearImage.setDepth(1);
+
+        // Add pike image from sprite sheet and set it invisible initially
+        this.pikeImage = this.add.sprite(this.player.x, this.player.y, 'characters', 18); // Assuming 18 is the frame index for the pike
+        this.pikeImage.setVisible(false);
+        this.pikeImage.setAngle(45);
+        this.pikeImage.setDepth(1);
 
         // Enable collision handling
         this.physics.add.collider(this.player, this.groundLayer, this.handleTileCollision, null, this);
@@ -115,86 +358,75 @@ class Platformer extends Phaser.Scene {
         this.player.body.onCollide = true;
         this.player.body.onWorldBounds = true;
 
-        // Set up enemies
-        this.enemies = this.physics.add.group();
-        const enemyCoordinates = [
-            { x: 200, y: 300 },
-            { x: 425, y: 0 },
-            { x: 800, y: 0 },
-            { x: 1100, y: 300}
-        ];
-
-        // Create enemies at specified coordinates
-        enemyCoordinates.forEach(coord => {
-            const enemy = new Enemy(this, coord.x, coord.y, 'platformer_characters');
-            this.enemies.add(enemy.sprite);
-        });
-
-        // Ensure enemies collide with the ground layer
-        this.physics.add.collider(this.enemies, this.groundLayer);
-
-        // Create coins from Tiled objects
-        this.coins = this.map.createFromObjects('Coins', {
-            name: 'coin',
-            key: 'platformer_characters',
-            frame: 2 // Adjust the frame number if needed
-        });
-
-        // Convert the coins into Arcade Physics sprites (STATIC_BODY, so they don't move)
-        this.coins.forEach((coin) => {
-            this.physics.world.enable(coin, Phaser.Physics.Arcade.STATIC_BODY);
-            coin.setOrigin(0.5, 0.5);
-            console.log('Coin created at:', coin.x, coin.y); // Log coin creation
-        });
-
-        console.log(this.coins);
-
-        // Create a Phaser group out of the array this.coins
-        this.coinGroup = this.add.group(this.coins);
-
-        // Handle collision detection with coins
-        this.physics.add.overlap(this.player, this.coinGroup, (player, coin) => {
-            coin.destroy(); // remove coin on overlap
-            this.collectCoin(); // add any additional logic for collecting the coin
-        });
-
-        // Create door from Tiled objects
-        this.door = this.map.createFromObjects('Coins', {
-            name: 'door',
-            key: 'platformer_characters',
-            frame: 56 // Adjust the frame number if needed
-        });
-
-        // Convert the door into an Arcade Physics sprite (STATIC_BODY, so it doesn't move)
-        this.door.forEach((door) => {
-            this.physics.world.enable(door, Phaser.Physics.Arcade.STATIC_BODY);
-            door.setOrigin(0.5, 0.5);
-            console.log('Door created at:', door.x, door.y); // Log door creation
-        });
-
-        console.log(this.door);
-
-        // Handle collision detection with door
-        this.physics.add.overlap(this.player, this.door, (player, door) => {
-            if (this.coinGroup.countActive(true) === 0) {
-                this.handleYKeyPress(); // Simulate Y press if all coins are collected
-            }
-        });
-
         // Set up Phaser-provided cursor key input
         this.cursors = this.input.keyboard.createCursorKeys();
         this.rKey = this.input.keyboard.addKey('R');
         this.lShiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.yKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
         this.pKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+        this.tKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+        this.gKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
+        this.hKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
 
         this.input.keyboard.enabled = true;
+
+        this.input.keyboard.on('keydown-ONE', () => {
+            let invsize = this.player.inventory.length;
+            this.player.inventory.useItem('Candy', this.player);
+            if (this.player.inventory.length < invsize) {
+                this.scene.events.emit('updateHealth', playerSprite.health);
+            }
+        });
+        this.input.keyboard.on('keydown-TWO', () => {
+            let invsize = this.player.inventory.length;
+
+            this.player.inventory.useItem('Apple', this.player);
+            if (this.player.inventory.length < invsize) {
+                this.scene.events.emit('updateHealth', playerSprite.health);
+            }
+        });
+        this.input.keyboard.on('keydown-THREE', () => {
+            let invsize = this.player.inventory.length;
+
+            this.player.inventory.useItem('Meat', this.player);
+            if (this.player.inventory.length < invsize) {
+                this.scene.events.emit('updateHealth', playerSprite.health);
+            }
+        });
+
+    
+
+        // Item enable/disable listeners
+        this.input.keyboard.on('keydown-FOUR', () => {
+            if (this.player.inventory.hasItem('Pike')) {
+                this.pikeImage.setVisible(!this.pikeImage.visible);
+                this.swordImage.setVisible(false);
+                this.spearImage.setVisible(false);
+            }
+        });
+
+        this.input.keyboard.on('keydown-FIVE', () => {
+            if (this.player.inventory.hasItem('Spear')) {
+                this.spearImage.setVisible(!this.spearImage.visible);
+                this.swordImage.setVisible(false);
+                this.pikeImage.setVisible(false);
+            }
+        });
+
+        this.input.keyboard.on('keydown-SIX', () => {
+            if (this.player.inventory.hasItem('Sword')) {
+                this.swordImage.setVisible(!this.swordImage.visible);
+                this.spearImage.setVisible(false);
+                this.pikeImage.setVisible(false);
+            }
+        });
 
         // Debug key listener (assigned to D key)
         this.input.keyboard.on('keydown-D', () => {
             this.physics.world.drawDebug = this.physics.world.drawDebug ? false : true;
             this.physics.world.debugGraphic.clear();
-            this.allowWallJump = !this.allowWallJump;
         }, this);
 
         // Camera settings to follow the player and limit vertical movement
@@ -202,63 +434,93 @@ class Platformer extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.25, 0.25);
         this.cameras.main.setDeadzone(50, 50);
         this.cameras.main.setZoom(this.SCALE);
-        this.cameras.main.setFollowOffset(0, -this.map.heightInPixels / 2);
 
         // VFX
-        my.vfx.walking = this.add.particles(0, 0, "kenny-particles", {
-            frame: ['smoke_01.png', 'smoke_02.png', 'smoke_03.png'],
-            random: true,
-            scale: { start: .5, end: .7},
+        my.vfx.walking = this.add.particles(0, 0, 'characters', {
+            frame: 97, // Assuming 97 is the frame index for the desired sprite
+            scale: { start: 1.2, end: 0.2 },
             lifespan: 120,
-            alpha: { start: 1, end: 0.1 },
+            alpha: { start: .5, end: 0.1 },
+            speedY: { min: -10, max: 10 },
+            speedX: { min: -10, max: 10 }
         });
 
-
-
-
+        my.vfx.walking.setDepth(0);
         my.vfx.walking.start();
-
         my.vfx.walking.stop();
 
+        // Create items
+        this.items = this.physics.add.group();
 
-        
-        my.vfx.coin = this.add.particles(0, 0, "kenny-particles", {
-            frame: 'circle_02.png',
-            scale: { start: 0.1, end: 0.2 },
-            lifespan: 300,
-            alpha: { start: 1, end: 0 },
-        });
+        const apple = this.items.create(200, 300, 'apple');
+        apple.setScale(.5);
+        apple.itemInstance = new Apple();
 
-        my.vfx.coin.stop();
+        const candy = this.items.create(400, 300, 'candy');
+        candy.setScale(.5);
+        candy.itemInstance = new Candy();
+
+        const meat = this.items.create(600, 300, 'meat');
+        meat.setScale(.5);
+        meat.itemInstance = new Meat();
+
+        const apple2 = this.items.create(800, 300, 'apple');
+        apple2.setScale(.5);
+        apple2.itemInstance = new Apple();
+
+        // Add collision detection between player and items
+        this.physics.add.overlap(this.player, this.items, this.pickupItem, null, this);
+
+        // Add collision detection between items and ground
+        this.physics.add.collider(this.items, this.groundLayer);
+
+        this.player.lastDamageTime = 0;
+
+        this.door = this.physics.add.sprite(600, 730, 'characters', 74);
+        this.door.anims.play('door-closed');
+        this.door.setImmovable(true);
+        this.door.body.setAllowGravity(false);
+        this.door.setDepth(-1);
+        this.door.setTint(0x808080); // Initial gray color
+
+
+        this.physics.add.overlap(this.player, this.door, this.openDoor, null, this);
+
+        // UI event listeners for score changes
+        this.events.on('addScore', this.updateDoorColor, this);
+
+        // Set up key listeners
+        this.input.keyboard.on('keydown-E', this.tryOpenDoor, this);
+        this.input.keyboard.on('keydown-SPACE', this.tryOpenDoor, this);
     }
 
-    handleYKeyPress() {
-        // Play the exit sound
-        this.sound.play('exit');
-
-        // Transition to the EndScene
-        this.scene.start('EndScene');
+    updateDoorColor() {
+        if (this.kills >= 3) {
+            this.door.setTint(0xffffff); // Change to white when score is 3 or more
+        } else {
+            this.door.setTint(0x808080); // Keep it gray otherwise
+        }
     }
 
-    collectCoin(player, coin) {
-        this.sound.play('coin');
-        this.score++;
-
-        my.vfx.coin.startFollow(this.player, this.player.displayWidth / 2 - 10, this.player.displayHeight / 2 - 5, false);
-        my.vfx.coin.start();
-
-        this.time.delayedCall(1000, () => {
-            my.vfx.coin.stop();
-        });
+    tryOpenDoor(event) {
+        if (this.physics.overlap(this.player, this.door) && this.kills >= 3) {
+            this.scene.start('CreditsScreen'); // Transition to credits
+        }
     }
 
     update() {
+        // Key down events
         if (Phaser.Input.Keyboard.JustDown(this.yKey)) {
             this.handleYKeyPress();
         }
 
         if (Phaser.Input.Keyboard.JustDown(this.pKey)) {
-            this.coinGroup.clear(true, true);
+            this.player.inventory.printInventory();
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && 
+            (this.swordImage.visible || this.spearImage.visible || this.pikeImage.visible)) {
+            this.swordAttack();
         }
 
         // Handle player controls
@@ -279,14 +541,13 @@ class Platformer extends Phaser.Scene {
             this.isWallJumping = false;
         }
 
+        // Player movement controls
         if (this.cursors.left.isDown) {
             this.player.setAccelerationX(-this.ACCELERATION);
             this.player.setFlip(true, false);
-            this.player.anims.play('walk', true);
-            this.player.setTint(0xADD8E6); // Set light blue tint
+            this.player.anims.play('player-walk', true);
 
-            my.vfx.walking.startFollow(this.player, this.player.displayWidth / 2 - 10, this.player.displayHeight / 2 - 5, false);
-
+            my.vfx.walking.startFollow(this.player, this.player.displayWidth / 2 - 20, this.player.displayHeight / 2 - 5, false);
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
 
             // Only play smoke effect if touching the ground
@@ -296,11 +557,9 @@ class Platformer extends Phaser.Scene {
         } else if (this.cursors.right.isDown) {
             this.player.setAccelerationX(this.ACCELERATION);
             this.player.resetFlip();
-            this.player.anims.play('walk', true);
-            this.player.setTint(0xADD8E6); // Set light blue tint
+            this.player.anims.play('player-walk', true);
 
-            my.vfx.walking.startFollow(this.player, this.player.displayWidth / 2 - 10, this.player.displayHeight / 2 - 5, false);
-
+            my.vfx.walking.startFollow(this.player, -this.player.displayWidth / 2 + 20, this.player.displayHeight / 2 - 5, false);
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
 
             // Only play smoke effect if touching the ground
@@ -309,9 +568,8 @@ class Platformer extends Phaser.Scene {
             }
         } else {
             this.player.setAccelerationX(0);
-            this.player.setDragX(this.DRAG);
-            this.player.anims.play('idle');
-            this.player.clearTint(); // Remove tint when idle
+            this.player.setVelocityX(0); // Snappily stop the player
+            this.player.anims.play('player-idle');
             my.vfx.walking.stop();
         }
 
@@ -348,8 +606,6 @@ class Platformer extends Phaser.Scene {
                 this.player.setVelocityY(this.JUMP_VELOCITY * 1.25); // Increased to make the double jump higher
             }
             this.jumps++;
-            // Play jump sound
-            this.sound.play('jump');
         }
 
         // Allow variable jump height
@@ -358,25 +614,6 @@ class Platformer extends Phaser.Scene {
         } else if (this.cursors.up.isUp) {
             this.isJumping = false;
         }
-
-        // FAN STUFF
-    const fanTiles = this.groundLayer.getTilesWithinWorldXY(this.player.x, this.player.y + this.player.height, 1, 1000, { isNotEmpty: true }).filter(tile => tile.properties.fan);
-    if (fanTiles.length > 0) {
-        const fanPower = fanTiles[0].properties.fanPower || 200;
-        let can_go = !this.isBlockedByCollisionTile(this.player, fanTiles[0]);
-        if (can_go) {
-            this.player.setVelocityY(-fanPower);
-            this.fanEffectActive = true;
-            this.fanEffectTimer = this.time.now;
-        }
-    } else if (this.fanEffectActive && this.time.now - this.fanEffectTimer < this.fanEffectDuration) {
-        // Gradually reduce the fan effect
-        const elapsedTime = this.time.now - this.fanEffectTimer;
-        const reducedFanPower = Phaser.Math.Linear(200, 0, elapsedTime / this.fanEffectDuration);
-        this.player.setVelocityY(-reducedFanPower);
-    } else {
-        this.fanEffectActive = false;
-    }
 
         // Handle crouching
         if (this.lShiftKey.isDown) {
@@ -388,6 +625,7 @@ class Platformer extends Phaser.Scene {
             if (this.isCrouching) {
                 this.isCrouching = false;
                 this.player.setScale(1, 1);
+                this.player.y -= 5;
             }
         }
 
@@ -400,29 +638,60 @@ class Platformer extends Phaser.Scene {
             this.playerDies();
         }
 
-        // Update enemies
-        this.enemies.children.iterate(enemy => {
-            if (enemy) {
-                enemy.update();
-            }
+        // Update sword position
+        if (this.cursors.left.isDown) {
+            this.swordImage.setPosition(this.player.x - 30, this.player.y);
+            this.swordImage.setAngle(-45); // Flip sword to the left
+        } else if (this.cursors.right.isDown) {
+            this.swordImage.setPosition(this.player.x + 30, this.player.y);
+            this.swordImage.setAngle(45); // Flip sword to the right
+        } else {
+            this.swordImage.setPosition(this.player.x + (this.player.flipX ? -20 : 20), this.player.y);
+        }
+
+        // Update pike position
+        if (this.cursors.left.isDown) {
+            this.pikeImage.setPosition(this.player.x - 30, this.player.y);
+            this.pikeImage.setAngle(-45); // Flip pike to the left
+        } else if (this.cursors.right.isDown) {
+            this.pikeImage.setPosition(this.player.x + 30, this.player.y);
+            this.pikeImage.setAngle(45); // Flip pike to the right
+        } else {
+            this.pikeImage.setPosition(this.player.x + (this.player.flipX ? -20 : 20), this.player.y);
+        }
+
+        // Update spear position
+        if (this.cursors.left.isDown) {
+            this.spearImage.setPosition(this.player.x - 30, this.player.y);
+            this.spearImage.setAngle(-45); // Flip spear to the left
+        } else if (this.cursors.right.isDown) {
+            this.spearImage.setPosition(this.player.x + 30, this.player.y);
+            this.spearImage.setAngle(45); // Flip spear to the right
+        } else {
+            this.spearImage.setPosition(this.player.x + (this.player.flipX ? -20 : 20), this.player.y);
+        }
+
+        // Ensure enemy faces the player and gun points in the correct direction
+        this.enemies.forEach(enemy => {
+            const direction = (this.player.x < enemy.sprite.x) ? -1 : 1;
+            enemy.sprite.setFlipX(direction === -1);
+            enemy.update();
         });
     }
 
     playerDies() {
-        this.physics.pause();
-        this.cameras.main.shake(1000, 0.001);
-        this.input.keyboard.enabled = false;
+        //this.physics.pause();
+        //this.cameras.main.shake(1000, 0.001);
+        //this.input.keyboard.enabled = false;
 
         // Play death sound
-        this.sound.play('death');
+        // this.sound.play('death');
 
-        let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'b93', 'You Died!', 64).setOrigin(0.5);
+        //let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'dritch', 'You Died!', 64).setOrigin(0.5);
 
-        deathText.setWordTint(0xff0000);
-
-        this.time.delayedCall(5000, () => {
-            this.scene.restart();
-        });
+        // this.time.delayedCall(5000, () => {
+        //     this.scene.restart();
+        // });
     }
 
     handleTileCollision(player, tile) {
@@ -446,26 +715,65 @@ class Platformer extends Phaser.Scene {
         return true; // Default collision handling for other tiles
     }
 
-    isBlockedByCollisionTile(player, fanTile) {
-        const playerX = Math.floor(player.x / this.map.tileWidth) * this.map.tileWidth;
-        const playerY = player.y + player.height;
-        const fanX = fanTile.pixelX;
-        const fanY = fanTile.pixelY;
-
-        const endY = Math.min(playerY, fanY);
-
-        for (let y = fanY - this.map.tileHeight; y >= endY; y -= this.map.tileHeight) {
-            const tile = this.groundLayer.getTileAtWorldXY(playerX, y);
-            if (tile && (tile.properties.collides || tile.properties.platform)) {
-                return true; // Found a collision tile between the player and the fan
-            }
+    swordAttack() {
+        let weapon = null;
+        if (this.player.inventory.hasItem('Sword') && this.swordImage.visible) {
+            weapon = { image: this.swordImage, damage: 3 };
+        } else if (this.player.inventory.hasItem('Spear') && this.spearImage.visible) {
+            weapon = { image: this.spearImage, damage: 2 };
+        } else if (this.player.inventory.hasItem('Pike') && this.pikeImage.visible) {
+            weapon = { image: this.pikeImage, damage: 1 };
         }
 
-        return false;
+        if (weapon) {
+            weapon.image.setVisible(true);
+            if (this.player.flipX) {
+                weapon.image.setAngle(-60);
+            } else {
+                weapon.image.setAngle(60);
+            }
+
+            // Check for collision with enemies and apply damage
+            this.enemies.forEach((enemy, index) => {
+                if (Phaser.Geom.Intersects.RectangleToRectangle(weapon.image.getBounds(), enemy.sprite.getBounds())) {
+                    enemy.takeDamage(weapon.damage);
+                    if (enemy.health <= 0) {
+                        this.events.emit('addScore');
+                        this.enemies.splice(index, 1); // Remove the enemy from the array if destroyed
+                    }
+                }
+            });
+
+            // Hide the weapon after a short duration
+            this.time.delayedCall(200, () => {
+                weapon.image.setAngle(this.player.flipX ? -45 : 45);
+            });
+        }
+    }
+
+    pickupItem(player, itemSprite) {
+        player.inventory.addItem(itemSprite.itemInstance);
+        itemSprite.destroy();
+        // Update the health display
+    }
+
+    handleYKeyPress() {
+        // Play the exit sound
+        //this.sound.play('exit');
+
+        // Transition to the EndScene
+        this.player.health = 0;
+
+        //this.scene.start('CreditsScreen');
+    }
+
+    openDoor(player, door) {
+        door.anims.play('door-open');
+        door.setTint(0x808080); // Set tint to full black
     }
 }
 
-//Win End Screen
+// Title Screen
 class TitleScreen extends Phaser.Scene {
     constructor() {
         super("TitleScreen");
@@ -483,6 +791,8 @@ class TitleScreen extends Phaser.Scene {
 
     create() {
         // Background
+
+        this.scene.stop('UIScene');
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 1).setOrigin(0);
 
         // Title Card
@@ -497,7 +807,6 @@ class TitleScreen extends Phaser.Scene {
 
         // Instructions
         const instructions = this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height * 7 / 8, 'dritch', 'Press <Q> to start playing!', 64).setOrigin(0.5);
-
 
         // Make the instructions slowly flash
         this.tweens.add({
@@ -517,5 +826,101 @@ class TitleScreen extends Phaser.Scene {
 
     gameRestart() {
         this.scene.start('platformerScene');
+    }
+}
+
+// Credits Screen
+class CreditsScreen extends Phaser.Scene {
+    constructor() {
+        super("CreditsScreen");
+    }
+
+    preload() {
+        // Load the bitmap font
+        this.load.setPath('./assets/fonts');
+        this.load.bitmapFont('b93', 'b93font.png', 'b93font.xml');
+    }
+
+    create() {
+
+        this.scene.stop('UIScene');
+
+        // Background
+        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xC3B1E1, 1).setOrigin(0);
+
+        // Credits Text
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'b93', 'Primary Assets - Kenney', 64).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'b93', 'Audio - Nathan Shturm', 64).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 + 100, 'b93', 'Gameplay Programming - Nathan Shturm', 64).setOrigin(0.5);
+
+        // Input listener to return to the game when Q key is pressed
+        this.input.keyboard.once('keydown-Q', () => {
+            this.scene.start('Platformer');
+            this.gameRestart();
+        });
+    }
+
+    gameRestart() {
+        this.scene.start('platformerScene');
+    }
+}
+
+class UI extends Phaser.Scene {
+    constructor() {
+        super({ key: 'UIScene', active: false }); // Set active to false initially
+
+        this.score = 0;
+        this.health = 10;
+    }
+
+    preload() {
+        this.load.setPath('./assets/');
+        this.load.image('binds', 'keybinds.png');
+    }
+
+    create() {
+        // Our Text object to display the Score
+        this.info = this.add.text(10, 10, 'Score: 0', { font: '80px dritch', fill: '#fff' });
+        this.pHealth = this.add.text(10, 156, 'Health: 10', {font: '80px dritch', fill: '#fff'});
+
+        // Grab a reference to the Game Scene
+        let ourGame = this.scene.get('platformerScene');
+
+        // Listen for events from it
+        ourGame.events.on('addScore', this.updateScore, this);
+
+        ourGame.events.on('updateHealth', this.updateHealth, this);
+
+        // Display the keybinds image at the bottom left
+    const keybindsImage = this.add.image(0, 0, 'binds').setOrigin(0, 1);
+    keybindsImage.setPosition(10, this.cameras.main.height - 10); // Adjust the 10s as needed for padding
+    keybindsImage.setScale(2);
+
+    }
+
+    updateScore() {
+        this.score += 1;
+        this.info.setText('Score: ' + this.score);
+
+        // Tint the text yellow
+        this.info.setTint(0xffff00);
+
+        // Create a delayed call to clear the tint after 1 second
+        this.time.delayedCall(1000, () => {
+            this.info.clearTint();
+        });
+    }
+
+    updateHealth(newHealth) {
+        this.health = newHealth;
+        this.pHealth.setText('Health: ' + this.health);
+
+        // Tint the text red
+        this.pHealth.setTint(0xff0000);
+
+        // Create a delayed call to clear the tint after 1 second
+        this.time.delayedCall(1000, () => {
+            this.pHealth.clearTint();
+        });
     }
 }

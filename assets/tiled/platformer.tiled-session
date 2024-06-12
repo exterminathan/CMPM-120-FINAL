@@ -8,20 +8,47 @@
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
-        "levelone.tmx": {
-            "scale": 0.33,
+        "": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "C:/Users/exter/OneDrive/Documents/GitHub/Game3B/assets/tiled/baselevel.tmx": {
+            "scale": 0.5205208333333333,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1754.5454545454543,
-                "y": 565.151515151515
+                "x": 956.7340404242545,
+                "y": 236.30178106864116
             }
+        },
+        "C:/Users/exter/OneDrive/Documents/GitHub/Game3B/assets/tiled/baselevel.tmx#MonochromeTileset": {
+            "scaleInDock": 1
+        },
+        "C:/Users/exter/OneDrive/Documents/GitHub/Game3B/assets/tiled/baselevel.tmx#ObjectsTileset": {
+            "scaleInDock": 1
+        },
+        "levelone.tmx": {
+            "scale": 0.5,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -293,
+                "y": 937
+            }
+        },
+        "levelone.tmx#abstract-tileset": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "levelone.tmx#characters": {
+            "scaleInDock": 1
         },
         "levelone.tmx#scribble-tileset-packed": {
             "scaleInDock": 0.5,
             "scaleInEditor": 1
         }
     },
+    "last.exportedFilePath": "C:/Users/exter/OneDrive/Documents/GitHub/CMPM-120-FINAL/assets/tiled",
     "last.imagePath": "C:/Users/exter/OneDrive/Documents/GitHub/CMPM-120-FINAL/assets/tiled",
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
     "map.tileHeight": 64,
     "map.tileWidth": 64,
@@ -32,7 +59,8 @@
     "project": "platformer.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "levelone.tmx"
+        "levelone.tmx",
+        "C:/Users/exter/OneDrive/Documents/GitHub/Game3B/assets/tiled/baselevel.tmx"
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {

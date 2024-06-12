@@ -15,7 +15,8 @@
 // game config
 let config = {
     parent: 'phaser-game',
-    type: Phaser.CANVAS,
+    type: Phaser.WEBGL,
+    zoom: .5,
     render: {
         pixelArt: true  // prevent pixel art from getting blurred when scaled
     },
@@ -26,9 +27,9 @@ let config = {
             gravity: { y: 3000},
         }
     },
-    width: 2000,
-    height: 950,
-    scene: [Load, Platformer, TitleScreen]
+    width: 3200,
+    height: 2080,
+    scene: [Load, Platformer, TitleScreen, CreditsScreen, UI]
 }
 
 var cursors;
