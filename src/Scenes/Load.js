@@ -8,7 +8,7 @@ class Load extends Phaser.Scene {
 
         // // Load tilemap information
         this.load.image("tilemap_tiles", "tilesheet_complete.png");     // Packed tilemap
-        this.load.tilemapTiledJSON("levelone", "levelone.tmj");   // Tilemap in JSON
+        this.load.tilemapTiledJSON("level1", "levelone.tmj");   // Tilemap in JSON
 
         // Load the sprite sheet for the characters (assuming 16x16 pixels per frame)
         this.load.spritesheet("characters", "spritesheet_default.png", {
@@ -16,15 +16,17 @@ class Load extends Phaser.Scene {
             frameHeight: 64
         });
 
-        // this.load.multiatlas("kenny-particles", 
-        //                      "kenny-particles.json");
-
 
         this.load.image('apple', 'apple.png');
         this.load.image('candy', 'candy.png');
         this.load.image('meat', 'meat.png');
 
-        this.load.image('door', )
+        
+        this.load.image('sword', 'sword.png');
+        this.load.image('pike', 'pike.png');
+        this.load.image('spear', 'spear.png');
+
+
 
 
         // // Load fonts
@@ -134,20 +136,13 @@ class Load extends Phaser.Scene {
 
         //door
         this.anims.create({
-            key: 'door-open',
+            key: 'door',
             frames: [{ key: 'characters', frame: 74 }],
             frameRate: 10,
             repeat: -1,
         });
 
-        //door
-        this.anims.create({
-            key: 'door-close',
-            frames: [{ key: 'characters', frame: 74 }],
-            frameRate: 10,
-            repeat: -1,
-        });
-
+        
         // Pass to the next Scene
         this.scene.start("TitleScreen");
     }
