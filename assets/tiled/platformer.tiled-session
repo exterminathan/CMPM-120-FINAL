@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "levelone.tmx",
+    "activeFile": "",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
@@ -27,11 +27,11 @@
             "scaleInDock": 1
         },
         "levelone.tmx": {
-            "scale": 0.5,
+            "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1483,
-                "y": 630
+                "x": 1198.4848484848483,
+                "y": 796.969696969697
             }
         },
         "levelone.tmx#abstract-tileset": {

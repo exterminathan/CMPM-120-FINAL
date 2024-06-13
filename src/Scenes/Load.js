@@ -144,6 +144,6 @@ class Load extends Phaser.Scene {
 
         
         // Pass to the next Scene
-        this.scene.start("TitleScreen");
+        this.scene.start("platformerScene"); //TitleScreen
     }
 }

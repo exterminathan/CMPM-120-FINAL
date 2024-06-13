@@ -148,6 +148,15 @@ class BaseEnemy {
         scene.physics.add.overlap(this.sprite, scene.player, this.handlePlayerCollision, null, this);
     }
 
+    isInCameraView() {
+        const camera = this.scene.cameras.main;
+        const enemyBounds = this.sprite.getBounds();
+        const cameraBounds = camera.worldView;
+
+        return Phaser.Geom.Intersects.RectangleToRectangle(enemyBounds, cameraBounds);
+    }
+
+
     adjustHitbox() {
         const originalWidth = this.sprite.body.width;
         const originalHeight = this.sprite.body.height;
@@ -186,6 +195,13 @@ class BaseEnemy {
     }
 
     update() {
+
+        if (!this.isInCameraView()) {
+            this.sprite.setVelocityX(0); // Stop the enemy if not in camera view
+            return;
+        }
+
+
         const direction = (this.scene.player.x < this.sprite.x) ? -1 : 1;
         this.sprite.setFlipX(direction === -1);
 
@@ -303,8 +319,8 @@ class Platformer extends Phaser.Scene {
 
         this.kills = 0;
 
-        this.SPAWN_LOCATION_X = 70;
-        this.SPAWN_LOCATION_Y = 730;
+        this.SPAWN_LOCATION_X = 200;
+        this.SPAWN_LOCATION_Y = 700;
 
         // Double jump and variable jump height variables
         this.doubleJumpTimer = null;
@@ -342,6 +358,10 @@ class Platformer extends Phaser.Scene {
         //this.load.bitmapFont('dritch', 'path/to/dritch_0.png', 'path/to/dritch.xml');
         //this.load.bitmapFont('b93', 'path/to/b93font.png', 'path/to/b93font.xml');
         //this.load.image("kenny-particles", "path/to/kenny-particles.png");
+
+                // Load the bitmap font
+                this.load.setPath('./assets/fonts');
+                this.load.bitmapFont('b93', 'b93font.png', 'b93font.xml');
     }
 
     create() {
@@ -381,13 +401,6 @@ class Platformer extends Phaser.Scene {
 
         // Create Inventory
         this.player.inventory = new Inventory();
-
-        // Create enemies
-        this.enemies = [];
-        this.enemies.push(new PurpleEnemy(this, 370, 730));
-        this.enemies.push(new RedEnemy(this, 500, 730)); // Add a RedEnemy
-        this.enemies.push(new GreenEnemy(this, 600, 730)); // Add a GreenEnemy
-        console.log(this.enemies);
 
         // Add sword image from sprite sheet and set it invisible initially
          this.swordImage = this.add.sprite(this.player.x, this.player.y, 'sword'); // Assuming 7 is the frame index for the sword
@@ -504,39 +517,7 @@ class Platformer extends Phaser.Scene {
         my.vfx.walking.start();
         my.vfx.walking.stop();
 
-        // Create items
-        this.items = this.physics.add.group();
-
-        const apple = this.items.create(200, 300, 'apple');
-        apple.setScale(.5);
-        apple.itemInstance = new Apple();
-
-        const candy = this.items.create(400, 300, 'candy');
-        candy.setScale(.5);
-        candy.itemInstance = new Candy();
-
-        const meat = this.items.create(600, 300, 'meat');
-        meat.setScale(.5);
-        meat.itemInstance = new Meat();
-
-        const apple2 = this.items.create(800, 300, 'apple');
-        apple2.setScale(.5);
-        apple2.itemInstance = new Apple();
-
-        const swordDrop = this.items.create(500, 300, 'sword'); // Replace 'sword' with the appropriate sprite key
-        swordDrop.setScale(.9);
-        swordDrop.setAngle(45);
-        swordDrop.itemInstance = new Sword();
-
-        const spearDrop = this.items.create(1500, 300, 'spear'); // Replace 'spear' with the appropriate sprite key
-        spearDrop.setScale(0.9);
-        spearDrop.setAngle(45);
-        spearDrop.itemInstance = new Spear();
-
-        const pikeDrop = this.items.create(2000, 300, 'pike'); // Replace 'pike' with the appropriate sprite key
-        pikeDrop.setScale(0.9);
-        pikeDrop.setAngle(45);
-        pikeDrop.itemInstance = new Pike();
+        this.createEnemiesAndItems();
 
         // Add collision detection between player and items
         this.physics.add.overlap(this.player, this.items, this.pickupItem, null, this);
@@ -553,17 +534,6 @@ class Platformer extends Phaser.Scene {
         this.physics.add.collider(this.items, this.groundLayer);
 
         this.player.lastDamageTime = 0;
-
-        const levelWidth = this.map.widthInPixels; // Assuming the level width is 9600px
-        const doorPositionX = levelWidth - 100; // Adjust as needed to place the door within the bounds
-        const doorPositionY = this.SPAWN_LOCATION_Y; // Adjust as needed for the Y position
-
-        this.door = this.physics.add.sprite(doorPositionX, doorPositionY, 'characters', 74);
-        this.door.anims.play('door');
-        this.door.setImmovable(true);
-        this.door.body.setAllowGravity(false);
-        this.door.setDepth(0);
-        this.door.setTint(0x808080); // Initial gray color
 
         this.physics.add.overlap(this.player, this.door, this.openDoor, null, this);
         
@@ -583,6 +553,71 @@ class Platformer extends Phaser.Scene {
     resetScore() {
         this.kills = 0;
         this.events.emit('resetScore');
+    }
+
+    createEnemiesAndItems() {
+        // Create enemies
+        this.enemies = [];
+        this.enemies.push(new PurpleEnemy(this, 1900, 730));
+        this.enemies.push(new RedEnemy(this, 3500, 950)); // Add a RedEnemy
+        
+
+
+        //dark green section
+        this.enemies.push(new GreenEnemy(this, 5560, 1120));
+
+
+        //blue section
+
+        this.enemies.push(new GreenEnemy(this, 9257, 1120));
+        this.enemies.push(new RedEnemy(this, 9257, 1120));
+        this.enemies.push(new PurpleEnemy(this, 9000, 1120));
+
+
+        console.log(this.enemies);
+
+        // Create items
+        this.items = this.physics.add.group();
+
+        const apple = this.items.create(1250, 0, 'apple');
+        apple.setScale(.5);
+        apple.itemInstance = new Apple();
+
+        const candy = this.items.create(3545, 415, 'candy');
+        candy.setScale(.5);
+        candy.itemInstance = new Candy();
+
+        const meat = this.items.create(10000, 300, 'meat');
+        meat.setScale(.5);
+        meat.itemInstance = new Meat();
+
+        const apple2 = this.items.create(10000, 300, 'apple');
+        apple2.setScale(.5);
+        apple2.itemInstance = new Apple();
+
+        const swordDrop = this.items.create(8200, 140, 'sword'); // Replace 'sword' with the appropriate sprite key
+        swordDrop.setScale(.9);
+        swordDrop.setAngle(45);
+        swordDrop.itemInstance = new Sword();
+
+        const spearDrop = this.items.create(4112, 280, 'spear'); // Replace 'spear' with the appropriate sprite key
+        spearDrop.setScale(0.9);
+        spearDrop.setAngle(45);
+        spearDrop.itemInstance = new Spear();
+
+        const pikeDrop = this.items.create(400, 800, 'pike'); // Replace 'pike' with the appropriate sprite key
+        pikeDrop.setScale(0.9);
+        pikeDrop.setAngle(45);
+        pikeDrop.itemInstance = new Pike();
+
+
+        
+        this.door = this.physics.add.sprite(9400, 417, 'characters', 74);
+        this.door.anims.play('door');
+        this.door.setImmovable(true);
+        this.door.body.setAllowGravity(false);
+        this.door.setDepth(0);
+        this.door.setTint(0x808080); // Initial gray color
     }
 
 
@@ -627,7 +662,7 @@ class Platformer extends Phaser.Scene {
     }
 
     updateDoorColor() {
-        if (this.kills >= 6) {
+        if (this.kills >= 10) {
             this.door.setTint(0xffffff); // Change to white when score is 3 or more
         } else {
             this.door.setTint(0x808080); // Keep it gray otherwise
@@ -635,8 +670,8 @@ class Platformer extends Phaser.Scene {
     }
 
     tryOpenDoor(event) {
-        if (this.physics.overlap(this.player, this.door) && this.kills >= 6) {
-            this.scene.start('CreditsScreen'); // Transition to credits
+        if (this.physics.overlap(this.player, this.door) && this.kills >= 10) {
+            this.scene.start('LevelCleared'); // Transition to credits
         }
     }
 
@@ -645,6 +680,10 @@ class Platformer extends Phaser.Scene {
         
         this.updateDoorColor();
 
+
+        if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J))) {
+            console.log(`Player coordinates: x=${this.player.x}, y=${this.player.y}`);
+        }
         
         // Key down events
 
@@ -826,10 +865,11 @@ class Platformer extends Phaser.Scene {
         //Play death sound
         //this.sound.play('death');
 
-        let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'dritch', 'You Died!', 64).setOrigin(0.5);
-
+        let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'b93', 'You Died!', 128).setOrigin(0.5);
+        deathText.setTint(0x00ff00);
+    
         this.time.delayedCall(3000, () => {
-            this.scene.start("CreditsScreen");
+            this.scene.start("platformerScene");
         });
 
         this.resetScore();
@@ -970,28 +1010,39 @@ class CreditsScreen extends Phaser.Scene {
     }
 
     create() {
-
         this.scene.stop('UIScene');
 
         // Background
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xC3B1E1, 1).setOrigin(0);
 
         // Credits Text
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'b93', 'Primary Assets - Kenney', 64).setOrigin(0.5);
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'b93', 'Audio - Nathan Shturm', 64).setOrigin(0.5);
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 + 100, 'b93', 'Gameplay Programming - Nathan Shturm', 64).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'b93', 'Primary Assets - Kenney', 128).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'b93', 'Audio - Nathan Shturm', 128).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 + 100, 'b93', 'Gameplay Programming - Nathan Shturm', 128).setOrigin(0.5);
+
+        // Instructions
+        const instructions = this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height * 7 / 8, 'b93', 'Press <Q> to play again!', 128).setOrigin(0.5);
+
+        // Make the instructions slowly flash
+        this.tweens.add({
+            targets: instructions,
+            alpha: { from: 1, to: 0 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
 
         // Input listener to return to the game when Q key is pressed
         this.input.keyboard.once('keydown-Q', () => {
-            this.scene.start('platformerScene');
             this.gameRestart();
         });
     }
 
     gameRestart() {
-        this.scene.start('platformerScene');
+        this.scene.start('TitleScreen'); // Restart from TitleScreen instead of the game scene directly
     }
 }
+
 
 // LevelCleared Screen
 class LevelCleared extends Phaser.Scene {
@@ -1012,18 +1063,16 @@ class LevelCleared extends Phaser.Scene {
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xC3B1E1, 1).setOrigin(0);
 
         // Level Cleared Text
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'b93', 'Level Cleared!', 64).setOrigin(0.5);
-        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'b93', 'Press Q to proceed to the next level', 64).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'b93', 'Level Complete!', 128).setOrigin(0.5);
+        this.add.bitmapText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'b93', 'Press Q to view credits!', 128).setOrigin(0.5);
 
         // Input listener to proceed to the next level when Q key is pressed
         this.input.keyboard.once('keydown-Q', () => {
-            this.nextLevel();
+            this.scene.start('CreditsScreen');
         });
     }
 
-    nextLevel() {
-        this.scene.start('platformerScene', { level: this.level + 1 });
-    }
+
 }
 
 
@@ -1050,17 +1099,36 @@ class UI extends Phaser.Scene {
         this.info = this.add.text(10, 10, 'Score: 0', { font: '80px dritch', fill: '#fff' });
         this.pHealth = this.add.text(10, 156, 'Health: 10', { font: '80px dritch', fill: '#fff' });
 
+        // Display initial instructions
+        this.instructions = this.add.text(900, this.cameras.main.height / 2, 'Kill 5 enemies to win!', {
+            font: '64px dritch',
+            fill: '#fff',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.instructions2 = this.add.text(900, this.cameras.main.height / 2 + 100, 'press <space> to continue', {
+            font: '64px dritch',
+            fill: '#fff',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        // Create a listener for the space key to remove the instructions
+        this.input.keyboard.once('keydown-SPACE', () => {
+            this.instructions.destroy();
+            this.instructions2.destroy();
+
+        });
+
         // Grab a reference to the Game Scene
         let ourGame = this.scene.get('platformerScene');
 
         // Listen for events from it
         ourGame.events.off('addScore', this.updateScore, this);
         ourGame.events.off('updateHealth', this.updateHealth, this);
-        ourGame.events.off('resetScore', this.resetScore, this);
+        //ourGame.events.off('resetScore', this.resetScore, this);
 
         ourGame.events.on('addScore', this.updateScore, this);
         ourGame.events.on('updateHealth', this.updateHealth, this);
-        ourGame.events.on('resetScore', this.resetScore, this);
+        //ourGame.events.on('resetScore', this.resetScore, this);
 
         // Display the keybinds image at the bottom left
         const keybindsImage = this.add.image(0, 0, 'binds').setOrigin(0, 1);
@@ -1070,40 +1138,47 @@ class UI extends Phaser.Scene {
 
     updateScore() {
         this.score += 1;
-        this.info.setText('Score: ' + this.score);
-    
-        // Tint the text yellow
-        this.info.setTint(0xffff00);
-    
-        // Create a delayed call to clear the tint after 1 second
-        this.time.delayedCall(1000, () => {
-            this.info.clearTint();
-        });
-    
-        // Check if door color needs to be updated
-        this.scene.get('platformerScene').updateDoorColor();
+        if (this.info) {
+            this.info.setText('Score: ' + this.score);
+            this.info.setTint(0xffff00);
+
+            // Create a delayed call to clear the tint after 1 second
+            this.time.delayedCall(1000, () => {
+                if (this.info) {
+                    this.info.clearTint();
+                }
+            });
+
+            // Check if door color needs to be updated
+            this.scene.get('platformerScene').updateDoorColor();
+        }
     }
-    
 
     updateHealth(newHealth) {
+        const oldHealth = this.health;
         this.health = newHealth;
         if (this.health < 0) {
             this.health = 0;
         }
-        this.pHealth.setText('Health: ' + this.health);
+        if (this.pHealth) {
+            this.pHealth.setText('Health: ' + this.health);
+            if (newHealth > oldHealth) {
+                this.pHealth.setTint(0x32CD32);
 
-        // Tint the text red
-        this.pHealth.setTint(0xff0000);
+            } else {
+                this.pHealth.setTint(0xFF5733);
 
-        // Create a delayed call to clear the tint after 1 second
-        this.time.delayedCall(1000, () => {
-            this.pHealth.clearTint();
-        });
-    }
+            }
 
-    resetScore() {
-        this.score = 0;
-        this.info.setText('Score: 0');
+            // Create a delayed call to clear the tint after 1 second
+            this.time.delayedCall(1000, () => {
+                if (this.pHealth) {
+                    this.pHealth.clearTint();
+                }
+            });
+        }
     }
 }
+
+
 
