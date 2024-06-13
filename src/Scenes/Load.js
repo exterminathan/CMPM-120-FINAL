@@ -34,9 +34,18 @@ class Load extends Phaser.Scene {
         this.load.bitmapFont('dritch', 'dritch_0.png', 'dritch.xml');
 
 
-        // Load audio files
-        //this.load.setPath('./assets/audio')
-        //this.load.audio('<name>', '<filename>');
+
+        //Load audio files
+        this.load.setPath('./assets/audio')
+        this.load.audio('bg', 'bg_audio.wav');
+        this.load.audio('intro', 'intro.ogg');
+        this.load.audio('jump', 'jump.ogg');
+        this.load.audio('hit', 'hit.ogg');
+        this.load.audio('death', 'death.ogg');
+        this.load.audio('eat', 'eat.ogg');
+        this.load.audio('enemy_death', 'enemy_death.ogg');
+        this.load.audio('win', 'win.ogg');
+
 
     }
 
@@ -144,6 +153,6 @@ class Load extends Phaser.Scene {
 
         
         // Pass to the next Scene
-        this.scene.start("platformerScene"); //TitleScreen
+        this.scene.start("TitleScreen"); //TitleScreen
     }
 }

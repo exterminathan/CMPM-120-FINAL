@@ -128,6 +128,7 @@ class Pike extends Item {
 
 class BaseEnemy {
     constructor(scene, x, y, key, walkAnim, idleAnim, jumpAnim, color) {
+
         this.scene = scene;
         this.sprite = scene.physics.add.sprite(x, y, key);
         this.health = 10;
@@ -310,6 +311,8 @@ class Platformer extends Phaser.Scene {
     }
 
     init() {
+        this.game.sound.stopAll();
+
         // variables and settings
         this.ACCELERATION = 400;
         this.DRAG = 600;
@@ -359,17 +362,20 @@ class Platformer extends Phaser.Scene {
         //this.load.bitmapFont('b93', 'path/to/b93font.png', 'path/to/b93font.xml');
         //this.load.image("kenny-particles", "path/to/kenny-particles.png");
 
-                // Load the bitmap font
-                this.load.setPath('./assets/fonts');
-                this.load.bitmapFont('b93', 'b93font.png', 'b93font.xml');
+        // Load the bitmap font
+        this.load.setPath('./assets/fonts');
+        this.load.bitmapFont('b93', 'b93font.png', 'b93font.xml');
     }
 
     create() {
         this.kills = 0;
 
+        // let bg_audio = this.sound.add('bg', {volume: 0.5, loop: true});
+        // bg_audio.play();
+
         // Create the tilemap and ground layer
         this.map = this.make.tilemap({ key: "level1" });
-        
+
         this.tileset = this.map.addTilesetImage("abstract-tileset", "tilemap_tiles", 64, 64);
         this.groundLayer = this.map.createLayer("ground", this.tileset, 0, 0);
         this.bgLayer = this.map.createLayer("bg", this.tileset, 0, 0);
@@ -403,22 +409,22 @@ class Platformer extends Phaser.Scene {
         this.player.inventory = new Inventory();
 
         // Add sword image from sprite sheet and set it invisible initially
-         this.swordImage = this.add.sprite(this.player.x, this.player.y, 'sword'); // Assuming 7 is the frame index for the sword
-         this.swordImage.setVisible(false);
-         this.swordImage.setAngle(45);
-         this.swordImage.setDepth(1);
- 
-         // Add spear image from sprite sheet and set it invisible initially
-         this.spearImage = this.add.sprite(this.player.x, this.player.y, 'spear'); // Assuming 51 is the frame index for the spear
-         this.spearImage.setVisible(false);
-         this.spearImage.setAngle(45);
-         this.spearImage.setDepth(1);
- 
-         // Add pike image from sprite sheet and set it invisible initially
-         this.pikeImage = this.add.sprite(this.player.x, this.player.y, 'pike'); // Assuming 18 is the frame index for the pike
-         this.pikeImage.setVisible(false);
-         this.pikeImage.setAngle(45);
-         this.pikeImage.setDepth(1);
+        this.swordImage = this.add.sprite(this.player.x, this.player.y, 'sword'); // Assuming 7 is the frame index for the sword
+        this.swordImage.setVisible(false);
+        this.swordImage.setAngle(45);
+        this.swordImage.setDepth(1);
+
+        // Add spear image from sprite sheet and set it invisible initially
+        this.spearImage = this.add.sprite(this.player.x, this.player.y, 'spear'); // Assuming 51 is the frame index for the spear
+        this.spearImage.setVisible(false);
+        this.spearImage.setAngle(45);
+        this.spearImage.setDepth(1);
+
+        // Add pike image from sprite sheet and set it invisible initially
+        this.pikeImage = this.add.sprite(this.player.x, this.player.y, 'pike'); // Assuming 18 is the frame index for the pike
+        this.pikeImage.setVisible(false);
+        this.pikeImage.setAngle(45);
+        this.pikeImage.setDepth(1);
 
         // Enable collision handling
         this.physics.add.collider(this.player, this.groundLayer, this.handleTileCollision, null, this);
@@ -441,11 +447,18 @@ class Platformer extends Phaser.Scene {
 
         this.input.keyboard.enabled = true;
 
+        let eat_audio = this.sound.add('eat', {volume: 2});
+
+
+
+
         this.input.keyboard.on('keydown-ONE', () => {
             let invsize = this.player.inventory.length;
             this.player.inventory.useItem('Candy', this.player);
             if (this.player.inventory.length < invsize) {
                 this.scene.events.emit('updateHealth', playerSprite.health);
+                eat_audio.play();
+
             }
         });
         this.input.keyboard.on('keydown-TWO', () => {
@@ -454,6 +467,7 @@ class Platformer extends Phaser.Scene {
             this.player.inventory.useItem('Apple', this.player);
             if (this.player.inventory.length < invsize) {
                 this.scene.events.emit('updateHealth', playerSprite.health);
+                eat_audio.play();
             }
         });
         this.input.keyboard.on('keydown-THREE', () => {
@@ -462,10 +476,11 @@ class Platformer extends Phaser.Scene {
             this.player.inventory.useItem('Meat', this.player);
             if (this.player.inventory.length < invsize) {
                 this.scene.events.emit('updateHealth', playerSprite.health);
+                eat_audio.play();
             }
         });
 
-    
+
 
         // Weapon enable/disable listeners
         this.input.keyboard.on('keydown-FOUR', () => {
@@ -491,6 +506,10 @@ class Platformer extends Phaser.Scene {
                 this.pikeImage.setVisible(false);
             }
         });
+
+        //load hit audio
+        this.hit_audio = this.sound.add('hit');
+
 
         // Debug key listener (assigned to D key)
         this.input.keyboard.on('keydown-D', () => {
@@ -536,7 +555,7 @@ class Platformer extends Phaser.Scene {
         this.player.lastDamageTime = 0;
 
         this.physics.add.overlap(this.player, this.door, this.openDoor, null, this);
-        
+
 
         // UI event listeners for score changes
         this.events.on('addScore', this.updateDoorColor, this);
@@ -547,7 +566,6 @@ class Platformer extends Phaser.Scene {
 
         // Set up key listeners
         this.input.keyboard.on('keydown-E', this.tryOpenDoor, this);
-        this.input.keyboard.on('keydown-SPACE', this.tryOpenDoor, this);
     }
 
     resetScore() {
@@ -560,16 +578,20 @@ class Platformer extends Phaser.Scene {
         this.enemies = [];
         this.enemies.push(new PurpleEnemy(this, 1900, 730));
         this.enemies.push(new RedEnemy(this, 3500, 950)); // Add a RedEnemy
-        
+
 
 
         //dark green section
         this.enemies.push(new GreenEnemy(this, 5560, 1120));
 
+        //dark green part 2
+        this.enemies.push(new PurpleEnemy(this, 6902, 1050));
+        this.enemies.push(new RedEnemy(this, 7580, 1050));
+
+
 
         //blue section
-
-        this.enemies.push(new GreenEnemy(this, 9257, 1120));
+        this.enemies.push(new GreenEnemy(this, 9100, 1120));
         this.enemies.push(new RedEnemy(this, 9257, 1120));
         this.enemies.push(new PurpleEnemy(this, 9000, 1120));
 
@@ -587,13 +609,26 @@ class Platformer extends Phaser.Scene {
         candy.setScale(.5);
         candy.itemInstance = new Candy();
 
-        const meat = this.items.create(10000, 300, 'meat');
+        const meat = this.items.create(9328, 1120, 'meat');
         meat.setScale(.5);
         meat.itemInstance = new Meat();
 
-        const apple2 = this.items.create(10000, 300, 'apple');
+        const apple2 = this.items.create(6090, 350, 'apple');
         apple2.setScale(.5);
         apple2.itemInstance = new Apple();
+
+        const candy2 = this.items.create(5050, 540, 'candy');
+        candy2.setScale(.5);
+        candy2.itemInstance = new Candy();
+
+        const candy3 = this.items.create(7460, 480, 'candy');
+        candy3.setScale(.5);
+        candy3.itemInstance = new Candy();
+
+
+
+
+
 
         const swordDrop = this.items.create(8200, 140, 'sword'); // Replace 'sword' with the appropriate sprite key
         swordDrop.setScale(.9);
@@ -611,7 +646,7 @@ class Platformer extends Phaser.Scene {
         pikeDrop.itemInstance = new Pike();
 
 
-        
+
         this.door = this.physics.add.sprite(9400, 417, 'characters', 74);
         this.door.anims.play('door');
         this.door.setImmovable(true);
@@ -619,7 +654,6 @@ class Platformer extends Phaser.Scene {
         this.door.setDepth(0);
         this.door.setTint(0x808080); // Initial gray color
     }
-
 
     updatePlayerWeaponPosition() {
         if (this.cursors.left.isDown) {
@@ -635,6 +669,7 @@ class Platformer extends Phaser.Scene {
                 this.spearImage.setPosition(this.player.x - 30, this.player.y);
                 this.spearImage.setAngle(-45);
             }
+
         } else if (this.cursors.right.isDown) {
             if (this.swordImage.visible) {
                 this.swordImage.setPosition(this.player.x + 30, this.player.y);
@@ -662,7 +697,7 @@ class Platformer extends Phaser.Scene {
     }
 
     updateDoorColor() {
-        if (this.kills >= 10) {
+        if (this.kills >= 16) {
             this.door.setTint(0xffffff); // Change to white when score is 3 or more
         } else {
             this.door.setTint(0x808080); // Keep it gray otherwise
@@ -670,21 +705,21 @@ class Platformer extends Phaser.Scene {
     }
 
     tryOpenDoor(event) {
-        if (this.physics.overlap(this.player, this.door) && this.kills >= 10) {
+        if (this.physics.overlap(this.player, this.door) && this.kills >= 16) {
             this.scene.start('LevelCleared'); // Transition to credits
         }
     }
 
     update() {
 
-        
+
         this.updateDoorColor();
 
 
         if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J))) {
             console.log(`Player coordinates: x=${this.player.x}, y=${this.player.y}`);
         }
-        
+
         // Key down events
 
         if (Phaser.Input.Keyboard.JustDown(this.pKey)) {
@@ -771,6 +806,10 @@ class Platformer extends Phaser.Scene {
             }
         }
 
+        //define jump sound
+        let jump_audio = this.sound.add('jump');
+
+
         // Handle jumping
         if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && (this.jumps < this.MAX_JUMPS || this.isWallJumping)) {
             this.isJumping = true;
@@ -778,11 +817,14 @@ class Platformer extends Phaser.Scene {
                 this.player.setVelocityY(this.JUMP_VELOCITY * 1.35);
                 this.player.setVelocityX(this.wallJumpDirection * this.WALL_JUMP_VELOCITY_X); // Add outward velocity
                 this.isWallJumping = false;
+                jump_audio.play();
             } else if (this.jumps === 0) {
                 this.player.setVelocityY(this.JUMP_VELOCITY);
                 this.jumpStartTime = this.time.now;
+                jump_audio.play();
             } else {
                 this.player.setVelocityY(this.JUMP_VELOCITY * 1.25); // Increased to make the double jump higher
+                jump_audio.play();
             }
             this.jumps++;
         }
@@ -848,12 +890,12 @@ class Platformer extends Phaser.Scene {
         }
 
         // Ensure enemy faces the player and gun points in the correct direction
-    
-            this.enemies.forEach(enemy => {
-                enemy.update();
-                enemy.weapon.image.setPosition(enemy.sprite.x + (enemy.sprite.flipX ? -30 : 30), enemy.sprite.y);
-                enemy.weapon.image.setAngle(enemy.sprite.flipX ? -45 : 45);
-            });
+
+        this.enemies.forEach(enemy => {
+            enemy.update();
+            enemy.weapon.image.setPosition(enemy.sprite.x + (enemy.sprite.flipX ? -30 : 30), enemy.sprite.y);
+            enemy.weapon.image.setAngle(enemy.sprite.flipX ? -45 : 45);
+        });
 
     }
 
@@ -862,12 +904,13 @@ class Platformer extends Phaser.Scene {
         this.cameras.main.shake(3000, 0.001);
         this.input.keyboard.enabled = false;
 
-        //Play death sound
-        //this.sound.play('death');
+        //this.bg_audio.stop();
+        this.sound.play('death');
 
         let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'b93', 'You Died!', 128).setOrigin(0.5);
-        deathText.setTint(0x00ff00);
-    
+        deathText.setTint(0xffffff);
+
+
         this.time.delayedCall(3000, () => {
             this.scene.start("platformerScene");
         });
@@ -896,6 +939,8 @@ class Platformer extends Phaser.Scene {
         return true; // Default collision handling for other tiles
     }
 
+
+
     swordAttack() {
         let weapon = null;
         if (this.player.inventory.hasItem('Sword') && this.swordImage.visible) {
@@ -905,7 +950,7 @@ class Platformer extends Phaser.Scene {
         } else if (this.player.inventory.hasItem('Pike') && this.pikeImage.visible) {
             weapon = { image: this.pikeImage, damage: 1 };
         }
-    
+
         if (weapon) {
             weapon.image.setVisible(true);
             if (this.player.flipX) {
@@ -913,26 +958,38 @@ class Platformer extends Phaser.Scene {
             } else {
                 weapon.image.setAngle(60);
             }
-    
+
+
+                let enemy_death = this.sound.add('enemy_death');
+
             // Check for collision with enemies and apply damage
             this.enemies.forEach((enemy, index) => {
                 if (Phaser.Geom.Intersects.RectangleToRectangle(weapon.image.getBounds(), enemy.sprite.getBounds())) {
                     enemy.takeDamage(weapon.damage);
+                    this.hit_audio.play();
                     if (enemy.health <= 0) {
                         this.events.emit('addScore');
                         this.enemies.splice(index, 1); // Remove the enemy from the array if destroyed
                         this.kills++;
+                        this.hit_audio.stop();
+                        enemy_death.play();
+
+                        this.time.delayedCall(200, () => {
+                            enemy_death.stop();
+                        });
+                        
+                        
                     }
                 }
             });
-    
+
             // Hide the weapon after a short duration
             this.time.delayedCall(200, () => {
                 weapon.image.setAngle(this.player.flipX ? -45 : 45);
             });
         }
     }
-    
+
 
     pickupItem(player, itemSprite) {
         player.inventory.addItem(itemSprite.itemInstance);
@@ -959,6 +1016,8 @@ class TitleScreen extends Phaser.Scene {
     }
 
     create() {
+        this.game.sound.stopAll();
+
         // Background
 
         this.scene.stop('UIScene');
@@ -990,6 +1049,11 @@ class TitleScreen extends Phaser.Scene {
         this.input.keyboard.once('keydown-Q', () => {
             this.gameRestart();
         });
+
+
+        //Audio
+        let intro_audio = this.sound.add('intro');
+        intro_audio.play();
     }
 
     gameRestart() {
@@ -1054,10 +1118,22 @@ class LevelCleared extends Phaser.Scene {
         // Load the bitmap font
         this.load.setPath('./assets/fonts');
         this.load.bitmapFont('b93', 'b93font.png', 'b93font.xml');
+
+        this.load.setPath('./assets/audio');
+        this.load.audio('win', 'win.ogg');
+
     }
 
     create() {
         this.scene.stop('UIScene');
+
+        //create win audio
+        let win_audio = this.sound.add('win');
+        win_audio.play();
+
+        this.time.delayedCall(200, () => {
+            win_audio.stop();
+        });
 
         // Background
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xC3B1E1, 1).setOrigin(0);
@@ -1100,15 +1176,15 @@ class UI extends Phaser.Scene {
         this.pHealth = this.add.text(10, 156, 'Health: 10', { font: '80px dritch', fill: '#fff' });
 
         // Display initial instructions
-        this.instructions = this.add.text(900, this.cameras.main.height / 2, 'Kill 5 enemies to win!', {
-            font: '64px dritch',
+        this.instructions = this.add.text(700, this.cameras.main.height / 2 - 100, 'Kill 8 enemies to win!', {
+            font: '48px dritch',
             fill: '#fff',
-            align: 'center'
+            align: 'left'
         }).setOrigin(0.5);
-        this.instructions2 = this.add.text(900, this.cameras.main.height / 2 + 100, 'press <space> to continue', {
-            font: '64px dritch',
+        this.instructions2 = this.add.text(700, this.cameras.main.height / 2 - 20, 'press <space> to clear', {
+            font: '48px dritch',
             fill: '#fff',
-            align: 'center'
+            align: 'left'
         }).setOrigin(0.5);
 
         // Create a listener for the space key to remove the instructions
@@ -1134,6 +1210,42 @@ class UI extends Phaser.Scene {
         const keybindsImage = this.add.image(0, 0, 'binds').setOrigin(0, 1);
         keybindsImage.setPosition(10, this.cameras.main.height - 20); // Adjust the 10s as needed for padding
         keybindsImage.setScale(2);
+
+        this.numOne = this.add.text(70, this.cameras.main.height - 70, '1', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
+
+        this.numTwo = this.add.text(250, this.cameras.main.height - 70, '2', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
+
+        this.numThree = this.add.text(430, this.cameras.main.height - 70, '3', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
+
+        this.numFour = this.add.text(610, this.cameras.main.height - 70, '4', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
+
+        this.numFive = this.add.text(790, this.cameras.main.height - 70, '5', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
+
+        this.numSix = this.add.text(970, this.cameras.main.height - 70, '6', {
+            font: '96px dritch',
+            fill: '#fff',
+            align: 'left'
+        }).setOrigin(0.5);
     }
 
     updateScore() {
