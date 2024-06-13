@@ -368,10 +368,23 @@ class Platformer extends Phaser.Scene {
     }
 
     create() {
+        this.input.on('pointerdown', () => {
+            if (this.sound.context.state === 'suspended') {
+                this.sound.context.resume();
+            }
+        });
+    
+        this.input.keyboard.on('keydown', () => {
+            if (this.sound.context.state === 'suspended') {
+                this.sound.context.resume();
+            }
+        });
+
+
         this.kills = 0;
 
-        // let bg_audio = this.sound.add('bg', {volume: 0.5, loop: true});
-        // bg_audio.play();
+        this.bg_audio = this.sound.add('bg', {volume: 0.5, loop: true});
+        this.bg_audio.play();
 
         // Create the tilemap and ground layer
         this.map = this.make.tilemap({ key: "level1" });
@@ -566,6 +579,7 @@ class Platformer extends Phaser.Scene {
 
         // Set up key listeners
         this.input.keyboard.on('keydown-E', this.tryOpenDoor, this);
+        this.input.keyboard.on('keydown-SPACE', this.tryOpenDoor, this);
     }
 
     resetScore() {
@@ -904,7 +918,8 @@ class Platformer extends Phaser.Scene {
         this.cameras.main.shake(3000, 0.001);
         this.input.keyboard.enabled = false;
 
-        //this.bg_audio.stop();
+
+        this.bg_audio.stop();
         this.sound.play('death');
 
         let deathText = this.add.bitmapText(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'b93', 'You Died!', 128).setOrigin(0.5);
